@@ -1,13 +1,10 @@
 import { Contract } from '@algorandfoundation/tealscript';
 
-type Whitelist = {account: Address, boxIndex: uint16, arc: string};
+type Whitelist = {account: Address, boxIndex: uint16, arc: uint16};
 
 // eslint-disable-next-line no-unused-vars
 class ARC75 extends Contract {
   whitelist = new BoxMap<Whitelist, uint64[]>();
-
-  @handle.createApplication
-  create(): void {}
 
   private verifyMBRPayment(payment: PayTxn, preMBR: uint64): void {
     assert(payment.amount === this.app.address.minBalance - preMBR);
@@ -32,7 +29,7 @@ class ARC75 extends Contract {
    * @param payment - The payment transaction to cover the MBR change
    *
    */
-  addAppToWhiteList(arc: string, boxIndex: uint16, appID: uint64, payment: PayTxn): void {
+  addAppToWhiteList(arc: uint16, boxIndex: uint16, appID: uint64, payment: PayTxn): void {
     const preMBR = this.app.address.minBalance;
     const whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc };
 
@@ -54,7 +51,7 @@ class ARC75 extends Contract {
    * @param appIDs - Array of app IDs that signify the whitelisted apps
    *
    */
-  setAppWhitelist(arc: string, boxIndex: uint16, appIDs: uint64[]): void {
+  setAppWhitelist(arc: uint16, boxIndex: uint16, appIDs: uint64[]): void {
     const preMBR = this.app.address.minBalance;
     const whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc };
 
@@ -76,7 +73,7 @@ class ARC75 extends Contract {
    * @param boxIndex - The index of the whitelist box to delete
    *
    */
-  deleteWhitelist(arc: string, boxIndex: uint16): void {
+  deleteWhitelist(arc: uint16, boxIndex: uint16): void {
     const preMBR = this.app.address.minBalance;
     const whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc };
 
@@ -93,7 +90,7 @@ class ARC75 extends Contract {
    * @param index - The index of the app in the whitelist
    *
    */
-  deleteAppFromWhitelist(arc: string, boxIndex: uint16, appID: uint64, index: uint64): void {
+  deleteAppFromWhitelist(arc: uint16, boxIndex: uint16, appID: uint64, index: uint64): void {
     const preMBR = this.app.address.minBalance;
     const whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc };
 

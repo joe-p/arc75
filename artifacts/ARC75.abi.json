@@ -7,7 +7,7 @@
       "args": [
         {
           "name": "arc",
-          "type": "string",
+          "type": "uint16",
           "desc": ""
         },
         {
@@ -37,7 +37,7 @@
       "args": [
         {
           "name": "arc",
-          "type": "string",
+          "type": "uint16",
           "desc": ""
         },
         {
@@ -62,7 +62,7 @@
       "args": [
         {
           "name": "arc",
-          "type": "string",
+          "type": "uint16",
           "desc": ""
         },
         {
@@ -82,7 +82,7 @@
       "args": [
         {
           "name": "arc",
-          "type": "string",
+          "type": "uint16",
           "desc": ""
         },
         {

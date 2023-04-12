@@ -7,10 +7,11 @@ import algosdk from 'algosdk';
 import { ARC75 } from './arc75_client';
 
 let appClient: ARC75;
-const ARC = 'ARCX';
+const ARC = BigInt(72);
+const INIT_MBR = 20900
 
-function getBoxRef(boxIndex: number, arc: string) {
-  const keyType = algosdk.ABIType.from('(address,uint16,string)');
+function getBoxRef(boxIndex: number, arc: bigint) {
+  const keyType = algosdk.ABIType.from('(address,uint16,uint16)');
 
   return {
     appIndex: 0,
@@ -18,12 +19,12 @@ function getBoxRef(boxIndex: number, arc: string) {
   };
 }
 
-async function getBoxValue(boxIndex: number, arc: string) {
+async function getBoxValue(boxIndex: number, arc: bigint) {
   const valueType = algosdk.ABIType.from('uint64[]');
   return valueType.decode(await appClient.getApplicationBox(getBoxRef(boxIndex, arc).name));
 }
 
-async function addApp(mbr: number, boxIndex: number, appID: number, arc: string) {
+async function addApp(mbr: number, boxIndex: number, appID: number, arc: bigint) {
   const payment = algosdk.makePaymentTxnWithSuggestedParamsFromObject({
     from: appClient.sender,
     to: appClient.appAddress,
@@ -103,27 +104,27 @@ describe('ARC75', function () {
   });
 
   it('initializeWithAdd', async function () {
-    await addApp(23300, id, 11, ARC);
+    await addApp(INIT_MBR, id, 11, ARC);
     const boxValue = await getBoxValue(id, ARC);
     expect(boxValue).to.deep.equal([BigInt(11)]);
   });
 
   it('mutliAdd', async function () {
-    await addApp(23300, id, 11, ARC);
+    await addApp(INIT_MBR, id, 11, ARC);
     await addApp(3200, id, 22, ARC);
     const boxValue = await getBoxValue(id, ARC);
     expect(boxValue).to.deep.equal([BigInt(11), BigInt(22)]);
   });
 
   it('initializeWithSet', async function () {
-    await setApps(23300, id, [11]);
+    await setApps(INIT_MBR, id, [11]);
 
     const boxValue = await getBoxValue(id, ARC);
     expect(boxValue).to.deep.equal([BigInt(11)]);
   });
 
   it('addTwoWithSet', async function () {
-    await setApps(23300, id, [11]);
+    await setApps(INIT_MBR, id, [11]);
     await setApps(3200 * 2, id, [11, 22, 33]);
 
     const boxValue = await getBoxValue(id, ARC);
@@ -131,7 +132,7 @@ describe('ARC75', function () {
   });
 
   it('removeWithSet', async function () {
-    await setApps(23300 + 3200 * 2, id, [11, 22, 33]);
+    await setApps(INIT_MBR + 3200 * 2, id, [11, 22, 33]);
 
     const preBalance = (
       await clients.sandboxAlgod().accountInformation(appClient.sender).do()
@@ -153,7 +154,7 @@ describe('ARC75', function () {
       await clients.sandboxAlgod().accountInformation(appClient.sender).do()
     ).amount;
 
-    await setApps(23300 + 3200 * 2, id, [11, 22, 33]);
+    await setApps(INIT_MBR + 3200 * 2, id, [11, 22, 33]);
 
     await appClient.deleteWhitelist(
       { arc: ARC, boxIndex: BigInt(id) },
@@ -175,7 +176,7 @@ describe('ARC75', function () {
   });
 
   it('deleteApp', async function () {
-    await setApps(23300 + 3200 * 2, id, [11, 22, 33]);
+    await setApps(INIT_MBR + 3200 * 2, id, [11, 22, 33]);
 
     const preBalance = (
       await clients.sandboxAlgod().accountInformation(appClient.sender).do()
