@@ -1,0 +1,567 @@
+#pragma version 8
+	b main
+
+bare_route_create:
+	txn OnCompletion
+	int NoOp
+	==
+	txn ApplicationID
+	int 0
+	==
+	&&
+	assert
+	byte 0x
+	pop
+	callsub create
+	int 1
+	return
+
+create:
+	proto 0 0
+	retsub
+
+verifyMBRPayment:
+	proto 2 0
+
+	// arc75.algo.ts:13
+	// assert(payment.amount === this.app.address.minBalance - preMBR)
+	frame_dig -1 // payment: pay
+	gtxns Amount
+	txna Applications 0
+	app_params_get AppAddress
+	assert
+	acct_params_get AcctMinBalance
+	assert
+	frame_dig -2 // preMBR: uint64
+	-
+	==
+	assert
+
+	// arc75.algo.ts:14
+	// assert(payment.receiver === this.app.address)
+	frame_dig -1 // payment: pay
+	gtxns Receiver
+	txna Applications 0
+	app_params_get AppAddress
+	assert
+	==
+	assert
+	retsub
+
+sendMBRPayment:
+	proto 1 0
+
+	// arc75.algo.ts:18
+	// sendPayment({
+	itxn_begin
+	int pay
+	itxn_field TypeEnum
+
+	// arc75.algo.ts:19
+	// sender: this.app.address
+	txna Applications 0
+	app_params_get AppAddress
+	assert
+	itxn_field Sender
+
+	// arc75.algo.ts:20
+	// receiver: this.txn.sender
+	txn Sender
+	itxn_field Receiver
+
+	// arc75.algo.ts:21
+	// amount: preMBR - this.app.address.minBalance
+	frame_dig -1 // preMBR: uint64
+	txna Applications 0
+	app_params_get AppAddress
+	assert
+	acct_params_get AcctMinBalance
+	assert
+	-
+	itxn_field Amount
+
+	// arc75.algo.ts:22
+	// fee: 0
+	int 0
+	itxn_field Fee
+	itxn_submit
+	retsub
+
+abi_route_addAppToWhiteList:
+	txn OnCompletion
+	int NoOp
+	==
+	txn ApplicationID
+	int 0
+	!=
+	&&
+	assert
+	byte 0x
+	dupn 2
+	txn GroupIndex
+	int 1
+	-
+	txna ApplicationArgs 3
+	btoi
+	txna ApplicationArgs 2
+	txna ApplicationArgs 1
+	extract 2 0
+	callsub addAppToWhiteList
+	int 1
+	return
+
+addAppToWhiteList:
+	proto 7 0
+
+	// arc75.algo.ts:36
+	// preMBR = this.app.address.minBalance
+	txna Applications 0
+	app_params_get AppAddress
+	assert
+	acct_params_get AcctMinBalance
+	assert
+	frame_bury -5 // preMBR: uint64
+
+	// arc75.algo.ts:37
+	// whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc }
+	txn Sender
+	frame_dig -2 // boxIndex: uint16
+	concat
+	store 11 // static elements
+	byte 0x0024 // head end
+	store 8 // dynamic head
+	int 36
+	store 9 // dynamic head offset
+	byte 0x
+	store 10 // dynamic elements
+	frame_dig -1 // arc: bytes
+	dup
+	len
+	itob
+	extract 6 2
+	swap
+	concat
+	load 10 // dynamic elements
+	swap
+	concat
+	store 10 // dynamic elements
+	load 11 // static elements
+	load 8 // dynamic head
+	load 10 // dynamic elements
+	concat
+	concat
+	frame_bury -6 // whitelist: Whitelist
+
+	// if0_condition
+	// arc75.algo.ts:39
+	// this.whitelist.exists(whitelist)
+	frame_dig -6 // whitelist: Whitelist
+	box_get
+	swap
+	pop
+	bz if0_else
+
+	// if0_consequent
+	// arc75.algo.ts:40
+	// this.whitelist.get(whitelist).push(appID)
+	frame_dig -6 // whitelist: Whitelist
+	box_get
+	assert
+	dup
+	int 0
+	extract_uint16
+	int 1
+	+
+	itob
+	extract 6 2
+	swap
+	extract 2 0
+	concat
+	frame_dig -3 // appID: uint64
+	itob
+	concat
+	frame_dig -6 // whitelist: Whitelist
+	dup
+	box_del
+	pop
+	swap
+	box_put
+	b if0_end
+
+if0_else:
+	// arc75.algo.ts:42
+	// newWhitelist: uint64[] = [appID]
+	byte 0x0001
+	frame_dig -3 // appID: uint64
+	itob
+	concat
+	frame_bury -7 // newWhitelist: uint64[]
+
+	// arc75.algo.ts:43
+	// this.whitelist.put(whitelist, newWhitelist)
+	frame_dig -6 // whitelist: Whitelist
+	dup
+	box_del
+	pop
+	frame_dig -7 // newWhitelist: uint64[]
+	box_put
+
+if0_end:
+	// arc75.algo.ts:46
+	// this.verifyMBRPayment(payment, preMBR)
+	byte 0x
+	pop
+	frame_dig -5 // preMBR: uint64
+	frame_dig -4 // payment: pay
+	callsub verifyMBRPayment
+	retsub
+
+abi_route_setAppWhitelist:
+	txn OnCompletion
+	int NoOp
+	==
+	txn ApplicationID
+	int 0
+	!=
+	&&
+	assert
+	byte 0x
+	dupn 1
+	txna ApplicationArgs 3
+	txna ApplicationArgs 2
+	txna ApplicationArgs 1
+	extract 2 0
+	callsub setAppWhitelist
+	int 1
+	return
+
+setAppWhitelist:
+	proto 5 0
+
+	// arc75.algo.ts:58
+	// preMBR = this.app.address.minBalance
+	txna Applications 0
+	app_params_get AppAddress
+	assert
+	acct_params_get AcctMinBalance
+	assert
+	frame_bury -4 // preMBR: uint64
+
+	// arc75.algo.ts:59
+	// whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc }
+	txn Sender
+	frame_dig -2 // boxIndex: uint16
+	concat
+	store 11 // static elements
+	byte 0x0024 // head end
+	store 8 // dynamic head
+	int 36
+	store 9 // dynamic head offset
+	byte 0x
+	store 10 // dynamic elements
+	frame_dig -1 // arc: bytes
+	dup
+	len
+	itob
+	extract 6 2
+	swap
+	concat
+	load 10 // dynamic elements
+	swap
+	concat
+	store 10 // dynamic elements
+	load 11 // static elements
+	load 8 // dynamic head
+	load 10 // dynamic elements
+	concat
+	concat
+	frame_bury -5 // whitelist: Whitelist
+
+	// arc75.algo.ts:61
+	// this.whitelist.delete(whitelist)
+	frame_dig -5 // whitelist: Whitelist
+	box_del
+
+	// arc75.algo.ts:63
+	// this.whitelist.put(whitelist, appIDs)
+	frame_dig -5 // whitelist: Whitelist
+	dup
+	box_del
+	pop
+	frame_dig -3 // appIDs: uint64[]
+	box_put
+
+	// if1_condition
+	// arc75.algo.ts:65
+	// preMBR > this.app.address.minBalance
+	frame_dig -4 // preMBR: uint64
+	txna Applications 0
+	app_params_get AppAddress
+	assert
+	acct_params_get AcctMinBalance
+	assert
+	>
+	bz if1_else
+
+	// if1_consequent
+	// arc75.algo.ts:66
+	// this.sendMBRPayment(preMBR)
+	byte 0x
+	pop
+	frame_dig -4 // preMBR: uint64
+	callsub sendMBRPayment
+	b if1_end
+
+if1_else:
+	// arc75.algo.ts:68
+	// this.verifyMBRPayment(this.txnGroup[this.txn.groupIndex - 1], preMBR)
+	byte 0x
+	pop
+	frame_dig -4 // preMBR: uint64
+	txn GroupIndex
+	int 1
+	-
+	callsub verifyMBRPayment
+
+if1_end:
+	retsub
+
+abi_route_deleteWhitelist:
+	txn OnCompletion
+	int NoOp
+	==
+	txn ApplicationID
+	int 0
+	!=
+	&&
+	assert
+	byte 0x
+	dupn 1
+	txna ApplicationArgs 2
+	txna ApplicationArgs 1
+	extract 2 0
+	callsub deleteWhitelist
+	int 1
+	return
+
+deleteWhitelist:
+	proto 4 0
+
+	// arc75.algo.ts:80
+	// preMBR = this.app.address.minBalance
+	txna Applications 0
+	app_params_get AppAddress
+	assert
+	acct_params_get AcctMinBalance
+	assert
+	frame_bury -3 // preMBR: uint64
+
+	// arc75.algo.ts:81
+	// whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc }
+	txn Sender
+	frame_dig -2 // boxIndex: uint16
+	concat
+	store 11 // static elements
+	byte 0x0024 // head end
+	store 8 // dynamic head
+	int 36
+	store 9 // dynamic head offset
+	byte 0x
+	store 10 // dynamic elements
+	frame_dig -1 // arc: bytes
+	dup
+	len
+	itob
+	extract 6 2
+	swap
+	concat
+	load 10 // dynamic elements
+	swap
+	concat
+	store 10 // dynamic elements
+	load 11 // static elements
+	load 8 // dynamic head
+	load 10 // dynamic elements
+	concat
+	concat
+	frame_bury -4 // whitelist: Whitelist
+
+	// arc75.algo.ts:83
+	// this.whitelist.delete(whitelist)
+	frame_dig -4 // whitelist: Whitelist
+	box_del
+
+	// arc75.algo.ts:85
+	// this.sendMBRPayment(preMBR)
+	byte 0x
+	pop
+	frame_dig -3 // preMBR: uint64
+	callsub sendMBRPayment
+	retsub
+
+abi_route_deleteAppFromWhitelist:
+	txn OnCompletion
+	int NoOp
+	==
+	txn ApplicationID
+	int 0
+	!=
+	&&
+	assert
+	byte 0x
+	dupn 2
+	txna ApplicationArgs 4
+	btoi
+	txna ApplicationArgs 3
+	btoi
+	txna ApplicationArgs 2
+	txna ApplicationArgs 1
+	extract 2 0
+	callsub deleteAppFromWhitelist
+	int 1
+	return
+
+deleteAppFromWhitelist:
+	proto 7 0
+
+	// arc75.algo.ts:97
+	// preMBR = this.app.address.minBalance
+	txna Applications 0
+	app_params_get AppAddress
+	assert
+	acct_params_get AcctMinBalance
+	assert
+	frame_bury -5 // preMBR: uint64
+
+	// arc75.algo.ts:98
+	// whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc }
+	txn Sender
+	frame_dig -2 // boxIndex: uint16
+	concat
+	store 11 // static elements
+	byte 0x0024 // head end
+	store 8 // dynamic head
+	int 36
+	store 9 // dynamic head offset
+	byte 0x
+	store 10 // dynamic elements
+	frame_dig -1 // arc: bytes
+	dup
+	len
+	itob
+	extract 6 2
+	swap
+	concat
+	load 10 // dynamic elements
+	swap
+	concat
+	store 10 // dynamic elements
+	load 11 // static elements
+	load 8 // dynamic head
+	load 10 // dynamic elements
+	concat
+	concat
+	frame_bury -6 // whitelist: Whitelist
+
+	// arc75.algo.ts:100
+	// spliced = this.whitelist.get(whitelist).splice(index, 1)
+	frame_dig -6 // whitelist: Whitelist
+	box_get
+	assert
+	int 0
+	extract_uint16
+	int 1
+	-
+	itob
+	extract 6 2
+	frame_dig -4 // index: uint64
+	int 8
+	*
+	int 2
+	+
+	store 12 // splice start
+	int 1
+	int 8
+	*
+	int 8
+	+
+	store 13 // splice byte length
+	frame_dig -6 // whitelist: Whitelist
+	box_get
+	assert
+	int 2
+	load 12 // splice start
+	substring3
+	frame_dig -6 // whitelist: Whitelist
+	box_get
+	assert
+	dup
+	len
+	load 12 // splice start
+	load 13 // splice byte length
+	+
+	int 8
+	-
+	swap
+	substring3
+	concat
+	concat
+	int 1
+	itob
+	extract 6 2
+	frame_dig -6 // whitelist: Whitelist
+	box_get
+	assert
+	load 12 // splice start
+	load 13 // splice byte length
+	int 8
+	-
+	extract3
+	concat
+	swap
+	frame_dig -6 // whitelist: Whitelist
+	dup
+	box_del
+	pop
+	swap
+	box_put
+	frame_bury -7 // spliced: uint64[]
+
+	// arc75.algo.ts:102
+	// assert(spliced[0] === appID)
+	frame_dig -7 // spliced: uint64[]
+	int 0
+	int 8
+	*
+	int 2
+	+
+	int 8
+	extract3
+	btoi
+	frame_dig -3 // appID: uint64
+	==
+	assert
+
+	// arc75.algo.ts:104
+	// this.sendMBRPayment(preMBR)
+	byte 0x
+	pop
+	frame_dig -5 // preMBR: uint64
+	callsub sendMBRPayment
+	retsub
+
+main:
+	txn NumAppArgs
+	bnz route_abi
+	txn ApplicationID
+	int 0
+	==
+	bnz bare_route_create
+
+route_abi:
+	method "addAppToWhiteList(string,uint16,uint64,pay)void"
+	method "setAppWhitelist(string,uint16,uint64[])void"
+	method "deleteWhitelist(string,uint16)void"
+	method "deleteAppFromWhitelist(string,uint16,uint64,uint64)void"
+	txna ApplicationArgs 0
+	match abi_route_addAppToWhiteList abi_route_setAppWhitelist abi_route_deleteWhitelist abi_route_deleteAppFromWhitelist

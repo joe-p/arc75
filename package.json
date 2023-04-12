@@ -1,0 +1,21 @@
+{
+  "scripts": {
+    "build": "tealscript arc75.algo.ts artifacts",
+    "test": "yarn build && beaker generate artifacts/ARC75.json . && mocha --timeout 10000 -r ts-node/register 'arc75_test.ts'"
+  },
+  "dependencies": {
+    "@algorandfoundation/tealscript": "^0.10.0",
+    "eslint": "^8.38.0",
+    "typescript": "^5.0.4"
+  },
+  "devDependencies": {
+    "@types/chai": "^4.3.4",
+    "@types/mocha": "^10.0.1",
+    "algosdk": "^2.2.0",
+    "beaker-ts": "^0.1.2",
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "ts-node": "^10.9.1",
+    "tsx": "^3.12.6"
+  }
+}
