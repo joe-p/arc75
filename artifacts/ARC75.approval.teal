@@ -68,7 +68,7 @@ sendMBRPayment:
 	itxn_submit
 	retsub
 
-abi_route_addAppToWhiteList:
+abi_route_addToWhitelist:
 	txn OnCompletion
 	int NoOp
 	==
@@ -83,14 +83,13 @@ abi_route_addAppToWhiteList:
 	int 1
 	-
 	txna ApplicationArgs 3
-	btoi
 	txna ApplicationArgs 2
 	txna ApplicationArgs 1
-	callsub addAppToWhiteList
+	callsub addToWhitelist
 	int 1
 	return
 
-addAppToWhiteList:
+addToWhitelist:
 	proto 7 0
 
 	// arc75.algo.ts:33
@@ -122,7 +121,7 @@ addAppToWhiteList:
 
 	// if0_consequent
 	// arc75.algo.ts:37
-	// this.whitelist.get(whitelist).push(appID)
+	// this.whitelist.get(whitelist).push(addr)
 	frame_dig -6 // whitelist: Whitelist
 	box_get
 	assert
@@ -136,8 +135,7 @@ addAppToWhiteList:
 	swap
 	extract 2 0
 	concat
-	frame_dig -3 // appID: uint64
-	itob
+	frame_dig -3 // addr: address
 	concat
 	frame_dig -6 // whitelist: Whitelist
 	dup
@@ -149,12 +147,11 @@ addAppToWhiteList:
 
 if0_else:
 	// arc75.algo.ts:39
-	// newWhitelist: uint64[] = [appID]
+	// newWhitelist: Address[] = [addr]
 	byte 0x0001
-	frame_dig -3 // appID: uint64
-	itob
+	frame_dig -3 // addr: address
 	concat
-	frame_bury -7 // newWhitelist: uint64[]
+	frame_bury -7 // newWhitelist: address[]
 
 	// arc75.algo.ts:40
 	// this.whitelist.put(whitelist, newWhitelist)
@@ -162,7 +159,7 @@ if0_else:
 	dup
 	box_del
 	pop
-	frame_dig -7 // newWhitelist: uint64[]
+	frame_dig -7 // newWhitelist: address[]
 	box_put
 
 if0_end:
@@ -175,7 +172,7 @@ if0_end:
 	callsub verifyMBRPayment
 	retsub
 
-abi_route_setAppWhitelist:
+abi_route_setWhitelist:
 	txn OnCompletion
 	int NoOp
 	==
@@ -189,11 +186,11 @@ abi_route_setAppWhitelist:
 	txna ApplicationArgs 3
 	txna ApplicationArgs 2
 	txna ApplicationArgs 1
-	callsub setAppWhitelist
+	callsub setWhitelist
 	int 1
 	return
 
-setAppWhitelist:
+setWhitelist:
 	proto 5 0
 
 	// arc75.algo.ts:55
@@ -220,12 +217,12 @@ setAppWhitelist:
 	box_del
 
 	// arc75.algo.ts:60
-	// this.whitelist.put(whitelist, appIDs)
+	// this.whitelist.put(whitelist, addrs)
 	frame_dig -5 // whitelist: Whitelist
 	dup
 	box_del
 	pop
-	frame_dig -3 // appIDs: uint64[]
+	frame_dig -3 // addrs: address[]
 	box_put
 
 	// if1_condition
@@ -314,7 +311,7 @@ deleteWhitelist:
 	callsub sendMBRPayment
 	retsub
 
-abi_route_deleteAppFromWhitelist:
+abi_route_deleteFromWhitelist:
 	txn OnCompletion
 	int NoOp
 	==
@@ -328,14 +325,13 @@ abi_route_deleteAppFromWhitelist:
 	txna ApplicationArgs 4
 	btoi
 	txna ApplicationArgs 3
-	btoi
 	txna ApplicationArgs 2
 	txna ApplicationArgs 1
-	callsub deleteAppFromWhitelist
+	callsub deleteFromWhitelist
 	int 1
 	return
 
-deleteAppFromWhitelist:
+deleteFromWhitelist:
 	proto 7 0
 
 	// arc75.algo.ts:94
@@ -368,15 +364,15 @@ deleteAppFromWhitelist:
 	itob
 	extract 6 2
 	frame_dig -4 // index: uint64
-	int 8
+	int 32
 	*
 	int 2
 	+
 	store 12 // splice start
 	int 1
-	int 8
+	int 32
 	*
-	int 8
+	int 32
 	+
 	store 13 // splice byte length
 	frame_dig -6 // whitelist: Whitelist
@@ -393,7 +389,7 @@ deleteAppFromWhitelist:
 	load 12 // splice start
 	load 13 // splice byte length
 	+
-	int 8
+	int 32
 	-
 	swap
 	substring3
@@ -407,7 +403,7 @@ deleteAppFromWhitelist:
 	assert
 	load 12 // splice start
 	load 13 // splice byte length
-	int 8
+	int 32
 	-
 	extract3
 	concat
@@ -418,20 +414,19 @@ deleteAppFromWhitelist:
 	pop
 	swap
 	box_put
-	frame_bury -7 // spliced: uint64[]
+	frame_bury -7 // spliced: address[]
 
 	// arc75.algo.ts:99
-	// assert(spliced[0] === appID)
-	frame_dig -7 // spliced: uint64[]
+	// assert(spliced[0] === addr)
+	frame_dig -7 // spliced: address[]
 	int 0
-	int 8
+	int 32
 	*
 	int 2
 	+
-	int 8
+	int 32
 	extract3
-	btoi
-	frame_dig -3 // appID: uint64
+	frame_dig -3 // addr: address
 	==
 	assert
 
@@ -441,6 +436,59 @@ deleteAppFromWhitelist:
 	pop
 	frame_dig -5 // preMBR: uint64
 	callsub sendMBRPayment
+	retsub
+
+abi_route_verifySender:
+	txn OnCompletion
+	int NoOp
+	==
+	txn ApplicationID
+	int 0
+	!=
+	&&
+	assert
+	byte 0x
+	dupn 1
+	txna ApplicationArgs 3
+	btoi
+	txna ApplicationArgs 2
+	txna ApplicationArgs 1
+	callsub verifySender
+	int 1
+	return
+
+verifySender:
+	proto 5 0
+
+	// arc75.algo.ts:112
+	// whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc }
+	txn Sender
+	frame_dig -2 // boxIndex: uint16
+	concat
+	frame_dig -1 // arc: uint16
+	concat
+	frame_bury -4 // whitelist: Whitelist
+
+	// arc75.algo.ts:114
+	// whitelistAddr = this.whitelist.get(whitelist)[index]
+	frame_dig -4 // whitelist: Whitelist
+	box_get
+	assert
+	frame_dig -3 // index: uint64
+	int 32
+	*
+	int 2
+	+
+	int 32
+	extract3
+	frame_bury -5 // whitelistAddr: address
+
+	// arc75.algo.ts:115
+	// assert(whitelistAddr === this.txn.sender)
+	frame_dig -5 // whitelistAddr: address
+	txn Sender
+	==
+	assert
 	retsub
 
 main:
@@ -458,9 +506,10 @@ main:
 	return
 
 route_abi:
-	method "addAppToWhiteList(uint16,uint16,uint64,pay)void"
-	method "setAppWhitelist(uint16,uint16,uint64[])void"
+	method "addToWhitelist(uint16,uint16,address,pay)void"
+	method "setWhitelist(uint16,uint16,address[])void"
 	method "deleteWhitelist(uint16,uint16)void"
-	method "deleteAppFromWhitelist(uint16,uint16,uint64,uint64)void"
+	method "deleteFromWhitelist(uint16,uint16,address,uint64)void"
+	method "verifySender(uint16,uint16,uint64)void"
 	txna ApplicationArgs 0
-	match abi_route_addAppToWhiteList abi_route_setAppWhitelist abi_route_deleteWhitelist abi_route_deleteAppFromWhitelist
+	match abi_route_addToWhitelist abi_route_setWhitelist abi_route_deleteWhitelist abi_route_deleteFromWhitelist abi_route_verifySender

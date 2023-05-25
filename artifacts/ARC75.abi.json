@@ -3,7 +3,7 @@
   "desc": "",
   "methods": [
     {
-      "name": "addAppToWhiteList",
+      "name": "addToWhitelist",
       "args": [
         {
           "name": "arc",
@@ -16,8 +16,8 @@
           "desc": ""
         },
         {
-          "name": "appID",
-          "type": "uint64",
+          "name": "addr",
+          "type": "address",
           "desc": ""
         },
         {
@@ -33,7 +33,7 @@
       }
     },
     {
-      "name": "setAppWhitelist",
+      "name": "setWhitelist",
       "args": [
         {
           "name": "arc",
@@ -46,8 +46,8 @@
           "desc": ""
         },
         {
-          "name": "appIDs",
-          "type": "uint64[]",
+          "name": "addrs",
+          "type": "address[]",
           "desc": ""
         }
       ],
@@ -78,7 +78,7 @@
       }
     },
     {
-      "name": "deleteAppFromWhitelist",
+      "name": "deleteFromWhitelist",
       "args": [
         {
           "name": "arc",
@@ -91,8 +91,33 @@
           "desc": ""
         },
         {
-          "name": "appID",
+          "name": "addr",
+          "type": "address",
+          "desc": ""
+        },
+        {
+          "name": "index",
           "type": "uint64",
+          "desc": ""
+        }
+      ],
+      "desc": "",
+      "returns": {
+        "type": "void",
+        "desc": ""
+      }
+    },
+    {
+      "name": "verifySender",
+      "args": [
+        {
+          "name": "arc",
+          "type": "uint16",
+          "desc": ""
+        },
+        {
+          "name": "boxIndex",
+          "type": "uint16",
           "desc": ""
         },
         {

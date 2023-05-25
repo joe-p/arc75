@@ -4,7 +4,7 @@ type Whitelist = {account: Address, boxIndex: uint16, arc: uint16};
 
 // eslint-disable-next-line no-unused-vars
 class ARC75 extends Contract {
-  whitelist = new BoxMap<Whitelist, uint64[]>();
+  whitelist = new BoxMap<Whitelist, Address[]>();
 
   private verifyMBRPayment(payment: PayTxn, preMBR: uint64): void {
     assert(payment.amount === this.app.address.minBalance - preMBR);
@@ -21,22 +21,22 @@ class ARC75 extends Contract {
   }
 
   /**
-   * Add app to whitelist box
+   * Add address to whitelist box
    *
    * @param arc - The ARC the whitelist corresponds to
-   * @param boxIndex - The index of the whitelist box to add the app to
-   * @param appID - The app ID to add to the whitelist
+   * @param boxIndex - The index of the whitelist box to add the address to
+   * @param addr - The address to add to the whitelist
    * @param payment - The payment transaction to cover the MBR change
    *
    */
-  addAppToWhiteList(arc: uint16, boxIndex: uint16, appID: uint64, payment: PayTxn): void {
+  addToWhitelist(arc: uint16, boxIndex: uint16, addr: Address, payment: PayTxn): void {
     const preMBR = this.app.address.minBalance;
     const whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc };
 
     if (this.whitelist.exists(whitelist)) {
-      this.whitelist.get(whitelist).push(appID);
+      this.whitelist.get(whitelist).push(addr);
     } else {
-      const newWhitelist: uint64[] = [appID];
+      const newWhitelist: Address[] = [addr];
       this.whitelist.put(whitelist, newWhitelist);
     }
 
@@ -44,20 +44,20 @@ class ARC75 extends Contract {
   }
 
   /**
-   * Sets a app whitelist for the sender. Should only be used when adding/removing
-   * more than one app
+   * Sets a address whitelist for the sender. Should only be used when adding/removing
+   * more than one address
    *
-   * @param boxIndex - The index of the whitelist box to put the app IDs in
-   * @param appIDs - Array of app IDs that signify the whitelisted apps
+   * @param boxIndex - The index of the whitelist box to put the addresses in
+   * @param addrs - Array of addresses that signify the whitelisted addresses
    *
    */
-  setAppWhitelist(arc: uint16, boxIndex: uint16, appIDs: uint64[]): void {
+  setWhitelist(arc: uint16, boxIndex: uint16, addrs: Address[]): void {
     const preMBR = this.app.address.minBalance;
     const whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc };
 
     this.whitelist.delete(whitelist);
 
-    this.whitelist.put(whitelist, appIDs);
+    this.whitelist.put(whitelist, addrs);
 
     if (preMBR > this.app.address.minBalance) {
       this.sendMBRPayment(preMBR);
@@ -67,7 +67,7 @@ class ARC75 extends Contract {
   }
 
   /**
-   * Deletes a app whitelist for the sender
+   * Deletes a address whitelist for the sender
    *
    * @param arc - The ARC the whitelist corresponds to
    * @param boxIndex - The index of the whitelist box to delete
@@ -83,21 +83,35 @@ class ARC75 extends Contract {
   }
 
   /**
-   * Deletes a app from a whitelist for the sender
+   * Deletes a address from a whitelist for the sender
    *
    * @param boxIndex - The index of the whitelist box to delete from
-   * @param appID - The app ID to delete from the whitelist
-   * @param index - The index of the app in the whitelist
+   * @param addr - The address to delete from the whitelist
+   * @param index - The index of the address in the whitelist
    *
    */
-  deleteAppFromWhitelist(arc: uint16, boxIndex: uint16, appID: uint64, index: uint64): void {
+  deleteFromWhitelist(arc: uint16, boxIndex: uint16, addr: Address, index: uint64): void {
     const preMBR = this.app.address.minBalance;
     const whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc };
 
     const spliced = this.whitelist.get(whitelist).splice(index, 1);
 
-    assert(spliced[0] === appID);
+    assert(spliced[0] === addr);
 
     this.sendMBRPayment(preMBR);
   }
+
+  /**
+   * Verifies that the sender is in the whitelist
+   *
+   * @param boxIndex - The index of the whitelist box to delete from
+   * @param index - The index of the address in the whitelist
+   *
+   */
+    verifySender(arc: uint16, boxIndex: uint16, index: uint64): void {
+      const whitelist: Whitelist = { account: this.txn.sender, boxIndex: boxIndex, arc: arc };
+
+      const whitelistAddr = this.whitelist.get(whitelist)[index];
+      assert(whitelistAddr === this.txn.sender);
+    }
 }
